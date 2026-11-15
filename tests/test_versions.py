@@ -129,3 +129,19 @@ def test_batches_history_uses_manifest(run, store):
     assert row["status"] == "done"
     assert batches.replay_note(True) == "输入摘要命中已完成批次，复用结果"
     assert batches.replay_note(False) == ""
+
+
+def test_cover_boundary_excludes_valid_to():
+    """边界：半开区间 [valid_from, valid_to)，valid_to 当天已经不属于该版本。"""
+    row = {"valid_from": "2026-01-01", "valid_to": "2026-04-01"}
+    assert intervals.covers(row, dt.date(2026, 1, 1)) is True
+    assert intervals.covers(row, dt.date(2026, 3, 31)) is True
+    assert intervals.covers(row, dt.date(2026, 4, 1)) is False
+    assert intervals.covers(row, dt.date(2025, 12, 31)) is False
+
+
+def test_open_end_version_covers_far_future():
+    """边界：valid_to 留空用 9999-12-31 参与比较，远期日期仍生效。"""
+    row = {"valid_from": "2026-01-01", "valid_to": "9999-12-31"}
+    assert intervals.covers(row, dt.date(2026, 11, 15)) is True
+    assert intervals.covers(row, dt.date(2030, 1, 1)) is True

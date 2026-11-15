@@ -122,3 +122,21 @@ def test_export_endpoints(client_with_run):
         assert expected in text
     reconcile = client_with_run.get("/api/reconcile").json()
     assert reconcile["all_balanced"] is True
+
+
+def test_downstream_excludes_self_reference():
+    """反例：自引用指标的下游不能把自己算进去，否则影响分会翻倍。"""
+    edges = [{"src": "metric:自比值", "dst": "metric:自比值", "kind": "metric_metric"},
+             {"src": "metric:毛利率", "dst": "metric:销售额", "kind": "metric_metric"}]
+    assert impact.downstream(edges, "自比值") == []
+    assert impact.downstream(edges, "销售额") == ["毛利率"]
+
+
+def test_impact_of_unknown_metric_is_zero_not_error(batch_id, store):
+    """边界：未注册指标返回 0 分结构，不抛异常。"""
+    data = _load(store, batch_id)
+    result = impact.compute("没登记", metrics=data["metrics"],
+                            edges=data["edges"], reports=data["reports"])
+    assert result["known"] is False
+    assert result["downstream_count"] == 0
+    assert result["score"] == "0.00"

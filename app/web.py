@@ -24,6 +24,7 @@ NAV = (
     ("/graph", "依赖", "graph"),
     ("/versions", "版本", "versions"),
     ("/impact", "影响", "impact"),
+    ("/retire", "下线", "retire"),
 )
 STATUS_LABELS = {
     "done": "完成", "failed": "失败", "running": "运行中",

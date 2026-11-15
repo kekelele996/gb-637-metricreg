@@ -1,4 +1,4 @@
-"""应用装配：配置 → 存储 → 模板 → 六个功能模块路由。
+"""应用装配：配置 → 存储 → 模板 → 七个功能模块路由。
 
 用工厂函数而不是模块级 app，测试可以给每个用例一个临时库和固定评估日。
 """
@@ -15,17 +15,20 @@ from .modules.m3_diagnostics import handler as m3_handler
 from .modules.m4_graph import handler as m4_handler
 from .modules.m5_versions import handler as m5_handler
 from .modules.m6_impact import handler as m6_handler
+from .modules.m7_retire import handler as m7_handler
 from .store import Store
 
-MODULES = (m1_handler, m2_handler, m3_handler, m4_handler, m5_handler, m6_handler)
-PAGE_ROUTES = ("/", "/contract", "/diagnostics", "/graph", "/versions", "/impact")
+MODULES = (m1_handler, m2_handler, m3_handler, m4_handler, m5_handler,
+           m6_handler, m7_handler)
+PAGE_ROUTES = ("/", "/contract", "/diagnostics", "/graph", "/versions",
+               "/impact", "/retire")
 
 
 def create_app(settings: config.Settings | None = None) -> FastAPI:
     settings = settings or config.Settings.from_env()
     app = FastAPI(
         title="metricreg 指标定义注册与依赖环检测",
-        description="接入指标 DSL → 语法 → 诊断 → 依赖图 → 版本区间 → 影响面",
+        description="接入指标 DSL → 语法 → 诊断 → 依赖图 → 版本区间 → 影响面 → 下线计划",
         version=settings.rule_version,
     )
     app.state.settings = settings

@@ -4,7 +4,7 @@
 """
 from __future__ import annotations
 
-from app.modules.m4_graph import builder, conflicts, service
+from app.modules.m4_graph import builder, conflicts, service, tarjan
 from fixtures import expected as EX
 
 
@@ -117,3 +117,14 @@ def test_unresolved_report_excluded(run, store):
     assert view["counts"]["cycles"] == EX.CYCLE_COMPONENTS
     assert view["by_edge"]["report_metric"] == EX.REPORTS_RESOLVED
     assert view["edge_labels"]["metric_field"] == "指标→字段"
+
+
+def test_singleton_component_without_self_loop_is_not_cycle():
+    """边界：单点分量只有在自环时才是环，无边指标不能算环。"""
+    nodes = ["孤立", "自环", "上游"]
+    adj = {"孤立": [], "自环": ["自环"], "上游": ["下游"]}
+    components = tarjan.strongly_connected(nodes, adj)
+    flags = {tuple(comp): tarjan.is_cycle(comp, adj) for comp in components}
+    assert flags[("自环",)] is True
+    assert flags[("孤立",)] is False
+    assert flags[("上游",)] is False

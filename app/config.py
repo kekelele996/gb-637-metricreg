@@ -18,10 +18,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CHINA_TZ = dt.timezone(dt.timedelta(hours=8), "Asia/Shanghai")
 UTC = dt.timezone.utc
 
-RULE_VERSION = "metricreg/1.2.0"
+RULE_VERSION = "metricreg/1.3.0"
 DECIMAL_QUANT = Decimal("0.01")
 
-STAGES = ("ingest", "syntax", "diagnose", "graph", "version", "impact")
+STAGES = ("ingest", "syntax", "diagnose", "graph", "version", "impact", "retire")
 STAGE_LABELS = {
     "ingest": "接入",
     "syntax": "语法",
@@ -29,8 +29,9 @@ STAGE_LABELS = {
     "graph": "依赖图",
     "version": "版本",
     "impact": "影响面",
+    "retire": "下线",
 }
-STAGE_FLOW = "接入 → 语法 → 诊断 → 依赖图 → 版本 → 影响面"
+STAGE_FLOW = "接入 → 语法 → 诊断 → 依赖图 → 版本 → 影响面 → 下线"
 
 # 聚合函数白名单：名称 → (返回类型, 说明用中文短名)
 AGGREGATORS = {
@@ -89,8 +90,22 @@ DIAG_ORDER = (
     "G_SELF_REF", "G_CYCLE", "G_REF_UNKNOWN", "G_DEP_UNDECLARED",
     "G_DEP_DECLARED_UNUSED",
     "V_INTERVAL_OVERLAP", "V_INTERVAL_INVERTED", "V_STALE_SUBMIT",
-    "X_EMPTY_SELECTION", "B_IDEMPOTENT_REPLAY", "E_BOM_STRIPPED",
+    "X_EMPTY_SELECTION",
+    "R_NO_TARGETS", "R_TARGET_UNKNOWN", "R_CYCLE_BLOCKED", "R_NO_REPLACEMENT",
+    "R_VERSION_AMBIGUOUS", "R_REPLACEMENT_PARTIAL", "R_VERSION_NONE",
+    "R_REPORT_DANGLING", "R_REQUEST_DUPLICATE", "R_RING_MERGED",
+    "R_ISOLATED_SKIPPED",
+    "B_IDEMPOTENT_REPLAY", "E_BOM_STRIPPED",
     "E_CRLF_NORMALIZED", "E_CHARSET_FALLBACK",
+)
+
+# 下线计划：迁移顺序与环计数规则，页面、导出、测试共用同一份说明
+RETIRE_ORDER_RULE = "依赖方先迁，被依赖方后下线"
+RETIRE_RING_RULE = "一个强连通分量只计一个环，环键取成员集合的规范轮转"
+RETIRE_BLOCK_LEVELS = (
+    ("R_CYCLE_BLOCKED", "环内", "指标在依赖环内，先后次序无法确定"),
+    ("R_NO_REPLACEMENT", "无替代", "没有等价替代，且仍有报表引用"),
+    ("R_VERSION_AMBIGUOUS", "版本重", "同名指标多个版本同时生效"),
 )
 
 # 同名冲突等级：block 阻断 / review 复核 / info 记录

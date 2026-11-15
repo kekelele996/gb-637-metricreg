@@ -7,12 +7,15 @@ from __future__ import annotations
 
 from typing import NamedTuple
 
+from . import config
+
 INFO = "info"
 WARN = "warn"
 ERROR = "error"
 LEVEL_ORDER = {ERROR: 0, WARN: 1, INFO: 2}
 LEVEL_LABELS = {ERROR: "隔离", WARN: "提示", INFO: "记录"}
 LEVEL_MARKS = {ERROR: "x", WARN: "!", INFO: "."}
+STAGE_LABELS = config.STAGE_LABELS
 
 
 class Reason(NamedTuple):
@@ -126,6 +129,40 @@ REASONS = {
     "X_EMPTY_SELECTION": _r(
         "X_EMPTY_SELECTION", WARN, "impact",
         "没有可计算影响面的目标指标", "先解析成功再选择指标"),
+    # ---- M7 下线影响与迁移顺序 ----
+    "R_NO_TARGETS": _r(
+        "R_NO_TARGETS", ERROR, "retire",
+        "没有指定下线指标", "选至少一个已注册指标再算"),
+    "R_TARGET_UNKNOWN": _r(
+        "R_TARGET_UNKNOWN", ERROR, "retire",
+        "下线目标未注册", "先在注册表登记，或改成已注册指标"),
+    "R_CYCLE_BLOCKED": _r(
+        "R_CYCLE_BLOCKED", ERROR, "retire",
+        "指标在依赖环内，迁移次序无法确定", "先按环路径拆一条引用边再排"),
+    "R_NO_REPLACEMENT": _r(
+        "R_NO_REPLACEMENT", ERROR, "retire",
+        "没有等价替代，且仍有报表引用", "先补替代指标，再停用旧指标"),
+    "R_VERSION_AMBIGUOUS": _r(
+        "R_VERSION_AMBIGUOUS", ERROR, "retire",
+        "同一指标多个版本同时生效", "收窄较早版本的 valid_to 后重排"),
+    "R_REPLACEMENT_PARTIAL": _r(
+        "R_REPLACEMENT_PARTIAL", WARN, "retire",
+        "只有分组或过滤不同的近似替代", "确认差异后再切换报表"),
+    "R_VERSION_NONE": _r(
+        "R_VERSION_NONE", WARN, "retire",
+        "评估日没有生效版本", "补一条覆盖评估日的版本"),
+    "R_REPORT_DANGLING": _r(
+        "R_REPORT_DANGLING", WARN, "retire",
+        "报表引用的指标未注册", "改指向替代指标，或把报表下架"),
+    "R_REQUEST_DUPLICATE": _r(
+        "R_REQUEST_DUPLICATE", WARN, "retire",
+        "下线请求重复，保留首条", "删掉请求台账里的重复行"),
+    "R_RING_MERGED": _r(
+        "R_RING_MERGED", INFO, "retire",
+        "同一强连通分量只计一个环", "环数按分量计，不按起点重复计"),
+    "R_ISOLATED_SKIPPED": _r(
+        "R_ISOLATED_SKIPPED", INFO, "retire",
+        "孤立指标没有依赖边，不进迁移次序", "孤立指标可直接下线"),
     "B_IDEMPOTENT_REPLAY": _r(
         "B_IDEMPOTENT_REPLAY", INFO, "ingest",
         "输入摘要命中已完成批次，复用结果", "同一输入重跑不新增行"),
@@ -160,6 +197,7 @@ def catalog() -> list[dict]:
     rows = sorted(REASONS.values(), key=lambda r: (r.stage, LEVEL_ORDER[r.level], r.code))
     return [
         {"code": r.code, "level": r.level, "stage": r.stage,
+         "stage_label": STAGE_LABELS.get(r.stage, r.stage),
          "level_label": LEVEL_LABELS[r.level], "title": r.title, "hint": r.hint}
         for r in rows
     ]
